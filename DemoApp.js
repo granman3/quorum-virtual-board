@@ -241,13 +241,6 @@ const DemoApp = () => {
           )
         ),
 
-        // CTA link
-        React.createElement('div', { className: 'mt-12 text-center' },
-          React.createElement('a', {
-            href: '/app.html',
-            className: 'text-quorum-accent hover:text-sky-300 text-sm font-medium transition-colors'
-          }, 'Ready to ask your own questions? Enter the Boardroom \u2192')
-        )
       )
     );
   }
