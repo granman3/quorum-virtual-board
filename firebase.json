@@ -1,0 +1,41 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/*.ts",
+      "**/*.tsx",
+      "firebase-debug.log",
+      "metadata.json"
+    ],
+    "rewrites": [
+      {
+        "source": "/app",
+        "destination": "/app.html"
+      },
+      {
+        "source": "/app.html",
+        "destination": "/app.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.js",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/javascript"
+          }
+        ]
+      }
+    ]
+  }
+}

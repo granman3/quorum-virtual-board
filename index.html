@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quorum - Your Virtual Board of Directors</title>
+    <meta name="description" content="Four AI executives. One boardroom. Your business decisions, debated from every angle. Get instant strategic advice from your CFO, CMO, CTO, and General Counsel." />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%232563eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='url(%23g)'/%3E%3Ctext x='16' y='22' text-anchor='middle' fill='white' font-family='serif' font-weight='bold' font-size='18'%3EQ%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#020617" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              quorum: {
+                dark: '#020617',
+                panel: '#0f172a',
+                surface: '#1e293b',
+                border: '#334155',
+                text: '#e2e8f0',
+                muted: '#94a3b8',
+                accent: '#38bdf8',
+                finance: '#059669',
+                growth: '#e11d48',
+                tech: '#0284c7',
+                legal: '#64748b',
+                gold: '#d97706',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              serif: ['Merriweather', 'Georgia', 'serif'],
+            },
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+      html { scroll-behavior: smooth; }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-12px); }
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.1); }
+        50% { box-shadow: 0 0 40px rgba(56, 189, 248, 0.25); }
+      }
+      @keyframes gradient-shift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .animate-float { animation: float 6s ease-in-out infinite; }
+      .animate-float-delay { animation: float 6s ease-in-out 2s infinite; }
+      .animate-float-delay-2 { animation: float 6s ease-in-out 4s infinite; }
+      .animate-fade-in-up { animation: fadeInUp 0.8s ease-out forwards; }
+      .animate-fade-in { animation: fadeIn 1s ease-out forwards; }
+      .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+      .gradient-text {
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+        background-size: 200% 200%;
+        animation: gradient-shift 4s ease infinite;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-gradient {
+        background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(56, 189, 248, 0.12) 0%, transparent 70%),
+                    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(129, 140, 248, 0.06) 0%, transparent 60%);
+      }
+
+      .card-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        border-color: #475569;
+      }
+
+      .agent-card {
+        position: relative;
+        overflow: hidden;
+      }
+      .agent-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+      }
+      .agent-card-finance::before { background: linear-gradient(90deg, #059669, #34d399); }
+      .agent-card-growth::before { background: linear-gradient(90deg, #e11d48, #fb7185); }
+      .agent-card-tech::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+      .agent-card-legal::before { background: linear-gradient(90deg, #64748b, #94a3b8); }
+
+      .faq-answer {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease, padding 0.4s ease;
+      }
+      .faq-answer.open {
+        max-height: 300px;
+      }
+
+      .nav-blur {
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+      }
+
+      .grid-bg {
+        background-image:
+          linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+        background-size: 60px 60px;
+      }
+
+      .step-connector {
+        position: relative;
+      }
+      .step-connector::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: -2rem;
+        width: 4rem;
+        height: 2px;
+        background: linear-gradient(90deg, #334155, transparent);
+      }
+
+      @media (max-width: 768px) {
+        .step-connector::after { display: none; }
+      }
+
+      .scroll-reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+      .scroll-reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    </style>
+  </head>
+
+  <body class="bg-quorum-dark text-quorum-text antialiased font-sans">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 nav-blur bg-quorum-dark/80 border-b border-quorum-border/50">
+      <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3 group">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-quorum-accent to-blue-600 flex items-center justify-center">
+            <span class="font-serif font-bold text-white text-sm">Q</span>
+          </div>
+          <span class="font-semibold text-lg text-quorum-text group-hover:text-white transition-colors">Quorum</span>
+        </a>
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#features" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">Features</a>
+          <a href="#board" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">The Board</a>
+          <a href="#how-it-works" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">How It Works</a>
+          <a href="#faq" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">FAQ</a>
+        </div>
+        <a href="/app.html" class="px-5 py-2 bg-quorum-accent hover:bg-sky-400 text-quorum-dark font-semibold text-sm rounded-lg transition-all hover:shadow-lg hover:shadow-quorum-accent/20">
+          Launch App
+        </a>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen flex items-center justify-center hero-gradient grid-bg pt-16">
+      <!-- Floating decorative elements -->
+      <div class="absolute top-32 left-[10%] w-20 h-20 rounded-2xl bg-quorum-finance/10 border border-quorum-finance/20 flex items-center justify-center animate-float opacity-60">
+        <svg class="w-8 h-8 text-quorum-finance" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      </div>
+      <div class="absolute top-48 right-[12%] w-16 h-16 rounded-2xl bg-quorum-growth/10 border border-quorum-growth/20 flex items-center justify-center animate-float-delay opacity-60">
+        <svg class="w-7 h-7 text-quorum-growth" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
+      </div>
+      <div class="absolute bottom-40 left-[15%] w-14 h-14 rounded-2xl bg-quorum-tech/10 border border-quorum-tech/20 flex items-center justify-center animate-float-delay-2 opacity-60">
+        <svg class="w-6 h-6 text-quorum-tech" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+      </div>
+      <div class="absolute bottom-32 right-[18%] w-18 h-18 rounded-2xl bg-quorum-legal/10 border border-quorum-legal/20 flex items-center justify-center animate-float opacity-60">
+        <svg class="w-7 h-7 text-quorum-legal" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" /></svg>
+      </div>
+
+      <div class="max-w-5xl mx-auto px-6 text-center">
+        <div class="animate-fade-in-up">
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-quorum-surface/80 border border-quorum-border/50 mb-8">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-medium text-quorum-muted">Powered by AI Multi-Agent Architecture</span>
+          </div>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-extrabold leading-tight tracking-tight animate-fade-in-up" style="animation-delay: 0.1s">
+          Your Virtual<br />
+          <span class="gradient-text">Board of Directors</span>
+        </h1>
+
+        <p class="mt-6 text-lg md:text-xl text-quorum-muted max-w-2xl mx-auto animate-fade-in-up leading-relaxed" style="animation-delay: 0.2s">
+          Four AI executives. One boardroom. Your business decisions,
+          debated from every angle &mdash; in seconds.
+        </p>
+
+        <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style="animation-delay: 0.3s">
+          <a href="/app.html" class="px-8 py-3.5 bg-quorum-accent hover:bg-sky-400 text-quorum-dark font-semibold rounded-lg transition-all hover:shadow-xl hover:shadow-quorum-accent/20 text-base">
+            Enter the Boardroom
+          </a>
+          <a href="#how-it-works" class="px-8 py-3.5 bg-quorum-surface hover:bg-quorum-border text-quorum-text font-medium rounded-lg border border-quorum-border transition-all text-base">
+            See How It Works
+          </a>
+        </div>
+
+        <!-- Mock board preview -->
+        <div class="mt-16 animate-fade-in-up" style="animation-delay: 0.5s">
+          <div class="max-w-3xl mx-auto bg-quorum-panel/80 border border-quorum-border/60 rounded-2xl p-6 animate-pulse-glow">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="flex gap-1.5">
+                <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+                <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+                <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+              </div>
+              <div class="flex-1 flex items-center justify-center">
+                <span class="text-xs font-mono text-quorum-muted/60">quorum &mdash; executive board session</span>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-quorum-accent/20 border border-quorum-accent/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span class="text-xs font-bold text-quorum-accent">CEO</span>
+                </div>
+                <div class="bg-quorum-surface/50 rounded-xl rounded-tl-none px-4 py-2.5 text-sm text-quorum-muted text-left">
+                  Should we expand into the European market this quarter?
+                </div>
+              </div>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="bg-quorum-surface/30 rounded-lg p-3 border border-quorum-finance/20">
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-quorum-finance"></div>
+                    <span class="text-[10px] font-semibold text-quorum-finance uppercase tracking-wider">CFO</span>
+                  </div>
+                  <p class="text-[11px] text-quorum-muted leading-relaxed">Cash reserves support a phased entry. Recommend pilot in UK first...</p>
+                </div>
+                <div class="bg-quorum-surface/30 rounded-lg p-3 border border-quorum-growth/20">
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-quorum-growth"></div>
+                    <span class="text-[10px] font-semibold text-quorum-growth uppercase tracking-wider">CMO</span>
+                  </div>
+                  <p class="text-[11px] text-quorum-muted leading-relaxed">EU market demand is surging. Strike now before competitors lock...</p>
+                </div>
+                <div class="bg-quorum-surface/30 rounded-lg p-3 border border-quorum-tech/20">
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-quorum-tech"></div>
+                    <span class="text-[10px] font-semibold text-quorum-tech uppercase tracking-wider">CTO</span>
+                  </div>
+                  <p class="text-[11px] text-quorum-muted leading-relaxed">GDPR compliance requires 6-8 weeks of infra work. Plan for data...</p>
+                </div>
+                <div class="bg-quorum-surface/30 rounded-lg p-3 border border-quorum-legal/20">
+                  <div class="flex items-center gap-1.5 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-quorum-legal"></div>
+                    <span class="text-[10px] font-semibold text-quorum-legal uppercase tracking-wider">Legal</span>
+                  </div>
+                  <p class="text-[11px] text-quorum-muted leading-relaxed">EU regulations require local entity. Recommend legal counsel in...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Powered By Strip -->
+    <section class="py-12 border-y border-quorum-border/30 bg-quorum-panel/30">
+      <div class="max-w-5xl mx-auto px-6">
+        <p class="text-center text-xs font-medium uppercase tracking-widest text-quorum-muted/60 mb-8">Powered by</p>
+        <div class="flex flex-wrap items-center justify-center gap-12 md:gap-16">
+          <div class="flex items-center gap-2 text-quorum-muted/50 hover:text-quorum-muted transition-colors">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span class="font-semibold text-sm">Gemini AI</span>
+          </div>
+          <div class="flex items-center gap-2 text-quorum-muted/50 hover:text-quorum-muted transition-colors">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3.89 15.672L6.255 20.29a1.22 1.22 0 002.214 0l7.344-14.04a1.22 1.22 0 00-1.107-1.742H3.89a1.22 1.22 0 00-1.107 1.742L3.89 8.586l1.58 3.043-1.58 4.043zm17.22-7.344a1.22 1.22 0 00-1.107-1.742h-5.62l-3.89 7.344 3.89 7.344h5.62a1.22 1.22 0 001.107-1.742l-3.89-5.602 3.89-5.602z"/></svg>
+            <span class="font-semibold text-sm">Firebase</span>
+          </div>
+          <div class="flex items-center gap-2 text-quorum-muted/50 hover:text-quorum-muted transition-colors">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span class="font-semibold text-sm">Multi-Agent</span>
+          </div>
+          <div class="flex items-center gap-2 text-quorum-muted/50 hover:text-quorum-muted transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" /></svg>
+            <span class="font-semibold text-sm">SMS Access</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Metrics -->
+    <section class="py-20 bg-quorum-dark">
+      <div class="max-w-5xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div class="text-center scroll-reveal">
+            <div class="text-4xl md:text-5xl font-extrabold gradient-text mb-2">4</div>
+            <div class="text-sm text-quorum-muted">Expert Perspectives</div>
+          </div>
+          <div class="text-center scroll-reveal">
+            <div class="text-4xl md:text-5xl font-extrabold gradient-text mb-2">&lt;10s</div>
+            <div class="text-sm text-quorum-muted">Board Response</div>
+          </div>
+          <div class="text-center scroll-reveal">
+            <div class="text-4xl md:text-5xl font-extrabold gradient-text mb-2">24/7</div>
+            <div class="text-sm text-quorum-muted">Always Available</div>
+          </div>
+          <div class="text-center scroll-reveal">
+            <div class="text-4xl md:text-5xl font-extrabold gradient-text mb-2">1</div>
+            <div class="text-sm text-quorum-muted">Unified Resolution</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Meet the Board -->
+    <section id="board" class="py-24 bg-quorum-dark">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16 scroll-reveal">
+          <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+            Meet Your <span class="gradient-text">Executive Board</span>
+          </h2>
+          <p class="mt-4 text-quorum-muted text-lg max-w-2xl mx-auto">
+            Four distinct AI personas with deep domain expertise, each advocating from their unique vantage point.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          <!-- CFO -->
+          <div class="agent-card agent-card-finance bg-quorum-panel border border-quorum-border/50 rounded-xl p-6 card-hover scroll-reveal">
+            <div class="w-12 h-12 rounded-xl bg-quorum-finance/15 border border-quorum-finance/25 flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-quorum-finance" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </div>
+            <h3 class="font-bold text-quorum-text text-lg">Marcus "The Hawk" Sterling</h3>
+            <p class="text-quorum-finance text-xs font-semibold uppercase tracking-wider mt-1 mb-3">Chief Financial Officer</p>
+            <p class="text-sm text-quorum-muted leading-relaxed">
+              Risk-averse guardian of the bottom line. Focuses on margins, cash flow, burn rate, and financial viability.
+            </p>
+          </div>
+
+          <!-- CMO -->
+          <div class="agent-card agent-card-growth bg-quorum-panel border border-quorum-border/50 rounded-xl p-6 card-hover scroll-reveal">
+            <div class="w-12 h-12 rounded-xl bg-quorum-growth/15 border border-quorum-growth/25 flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-quorum-growth" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
+            </div>
+            <h3 class="font-bold text-quorum-text text-lg">Elena "The Visionary" Vance</h3>
+            <p class="text-quorum-growth text-xs font-semibold uppercase tracking-wider mt-1 mb-3">Chief Marketing Officer</p>
+            <p class="text-sm text-quorum-muted leading-relaxed">
+              Aggressive growth champion. Pushes for scale, market share, brand dominance, and seizing opportunities.
+            </p>
+          </div>
+
+          <!-- CTO -->
+          <div class="agent-card agent-card-tech bg-quorum-panel border border-quorum-border/50 rounded-xl p-6 card-hover scroll-reveal">
+            <div class="w-12 h-12 rounded-xl bg-quorum-tech/15 border border-quorum-tech/25 flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-quorum-tech" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" /></svg>
+            </div>
+            <h3 class="font-bold text-quorum-text text-lg">David "The Architect" Chen</h3>
+            <p class="text-quorum-tech text-xs font-semibold uppercase tracking-wider mt-1 mb-3">Chief Technology Officer</p>
+            <p class="text-sm text-quorum-muted leading-relaxed">
+              Pragmatic systems thinker. Evaluates scalability, technical debt, infrastructure, and engineering tradeoffs.
+            </p>
+          </div>
+
+          <!-- Legal -->
+          <div class="agent-card agent-card-legal bg-quorum-panel border border-quorum-border/50 rounded-xl p-6 card-hover scroll-reveal">
+            <div class="w-12 h-12 rounded-xl bg-quorum-legal/15 border border-quorum-legal/25 flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-quorum-legal" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" /></svg>
+            </div>
+            <h3 class="font-bold text-quorum-text text-lg">Sarah "The Shield" O'Connor</h3>
+            <p class="text-quorum-legal text-xs font-semibold uppercase tracking-wider mt-1 mb-3">General Counsel</p>
+            <p class="text-sm text-quorum-muted leading-relaxed">
+              Cautious risk mitigator. Flags liability, compliance, regulatory concerns, and legal exposure.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="py-24 bg-quorum-panel/30 border-y border-quorum-border/20">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16 scroll-reveal">
+          <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+            How <span class="gradient-text">Quorum</span> Works
+          </h2>
+          <p class="mt-4 text-quorum-muted text-lg max-w-2xl mx-auto">
+            From question to boardroom consensus in three simple steps.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-3 gap-8 md:gap-6">
+          <!-- Step 1 -->
+          <div class="relative scroll-reveal">
+            <div class="step-connector bg-quorum-panel border border-quorum-border/50 rounded-xl p-8 h-full">
+              <div class="w-10 h-10 rounded-full bg-quorum-accent/15 border border-quorum-accent/30 flex items-center justify-center mb-5">
+                <span class="font-bold text-quorum-accent">1</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3">Present Your Challenge</h3>
+              <p class="text-quorum-muted text-sm leading-relaxed">
+                Type your business question or strategic dilemma. Works with anything from quick tactical decisions to complex strategic pivots.
+              </p>
+              <div class="mt-5 bg-quorum-surface/50 rounded-lg p-3">
+                <p class="text-xs font-mono text-quorum-muted/70">"Should we raise a Series B now or wait for better metrics next quarter?"</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="relative scroll-reveal">
+            <div class="step-connector bg-quorum-panel border border-quorum-border/50 rounded-xl p-8 h-full">
+              <div class="w-10 h-10 rounded-full bg-quorum-accent/15 border border-quorum-accent/30 flex items-center justify-center mb-5">
+                <span class="font-bold text-quorum-accent">2</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3">Board Deliberates</h3>
+              <p class="text-quorum-muted text-sm leading-relaxed">
+                All four executives analyze your question simultaneously in parallel. Each brings their domain expertise and challenges the others' assumptions.
+              </p>
+              <div class="mt-5 flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-quorum-finance animate-pulse"></div>
+                <div class="w-3 h-3 rounded-full bg-quorum-growth animate-pulse" style="animation-delay: 0.2s"></div>
+                <div class="w-3 h-3 rounded-full bg-quorum-tech animate-pulse" style="animation-delay: 0.4s"></div>
+                <div class="w-3 h-3 rounded-full bg-quorum-legal animate-pulse" style="animation-delay: 0.6s"></div>
+                <span class="text-xs text-quorum-muted ml-1">Deliberating...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="scroll-reveal">
+            <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-8 h-full">
+              <div class="w-10 h-10 rounded-full bg-quorum-accent/15 border border-quorum-accent/30 flex items-center justify-center mb-5">
+                <span class="font-bold text-quorum-accent">3</span>
+              </div>
+              <h3 class="text-xl font-bold mb-3">Unified Resolution</h3>
+              <p class="text-quorum-muted text-sm leading-relaxed">
+                The Board Secretary synthesizes all perspectives into a clear, actionable resolution &mdash; highlighting consensus, conflicts, and recommended next steps.
+              </p>
+              <div class="mt-5 bg-quorum-surface/50 rounded-lg p-3 border-l-2 border-quorum-gold">
+                <p class="text-[10px] font-semibold text-quorum-gold uppercase tracking-wider mb-1">Board Resolution</p>
+                <p class="text-xs text-quorum-muted/70">Consensus reached with conditions...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="features" class="py-24 bg-quorum-dark">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16 scroll-reveal">
+          <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+            Built for <span class="gradient-text">Real Decisions</span>
+          </h2>
+          <p class="mt-4 text-quorum-muted text-lg max-w-2xl mx-auto">
+            Enterprise-grade AI counsel, accessible to founders, operators, and leaders of any size.
+          </p>
+        </div>
+
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">Parallel Deliberation</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">All four agents respond simultaneously. No waterfalls, no waiting. Get the full picture in seconds.</p>
+          </div>
+
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">SMS & Web Access</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">Text your question from anywhere and get a concise boardroom response via SMS. Or use the full web dashboard.</p>
+          </div>
+
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">Adversarial Analysis</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">Each executive challenges the others' reasoning. No echo chambers &mdash; just rigorous, multi-angle debate.</p>
+          </div>
+
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">Smart Formatting</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">Short questions get bullet-point briefs. Detailed queries get full structured reports with markdown formatting.</p>
+          </div>
+
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">Distinct Personas</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">Each board member has a unique personality, bias, and communication style &mdash; just like a real executive team.</p>
+          </div>
+
+          <div class="bg-quorum-panel border border-quorum-border/50 rounded-xl p-7 card-hover scroll-reveal">
+            <div class="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-4">
+              <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>
+            </div>
+            <h3 class="font-bold text-lg mb-2">Board Synthesis</h3>
+            <p class="text-sm text-quorum-muted leading-relaxed">A Board Secretary synthesizes all viewpoints into a unified resolution with clear consensus and action items.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-24 relative overflow-hidden">
+      <div class="absolute inset-0 bg-gradient-to-b from-quorum-dark via-quorum-panel to-quorum-dark"></div>
+      <div class="absolute inset-0 grid-bg opacity-50"></div>
+      <div class="relative max-w-3xl mx-auto px-6 text-center scroll-reveal">
+        <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+          Stop guessing.<br />
+          <span class="gradient-text">Start deliberating.</span>
+        </h2>
+        <p class="mt-6 text-lg text-quorum-muted max-w-xl mx-auto">
+          Get the strategic counsel you need, from every angle, whenever you need it. Your board is always in session.
+        </p>
+        <div class="mt-10">
+          <a href="/app.html" class="inline-flex items-center gap-2 px-10 py-4 bg-quorum-accent hover:bg-sky-400 text-quorum-dark font-bold rounded-xl transition-all hover:shadow-2xl hover:shadow-quorum-accent/25 text-lg">
+            Enter the Boardroom
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-24 bg-quorum-dark border-t border-quorum-border/20">
+      <div class="max-w-3xl mx-auto px-6">
+        <div class="text-center mb-16 scroll-reveal">
+          <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">
+            Frequently Asked <span class="gradient-text">Questions</span>
+          </h2>
+        </div>
+
+        <div class="space-y-3 scroll-reveal">
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">What kind of questions can I ask?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">Anything you'd bring to a real board meeting. Strategic pivots, hiring decisions, market expansion, fundraising timing, product launches, partnership evaluations, pricing strategies, and more. The board works best with business decisions that benefit from multiple expert perspectives.</p>
+            </div>
+          </div>
+
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">How is this different from ChatGPT?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">ChatGPT gives you one perspective. Quorum gives you four competing perspectives from domain experts who actively challenge each other's reasoning, then synthesizes them into a balanced resolution. It's the difference between asking one advisor and convening a board meeting.</p>
+            </div>
+          </div>
+
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">Can I use it via SMS?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">Yes. Text your question to the Quorum number and receive a concise board briefing via SMS. Short questions get bullet-point responses, while detailed queries produce full structured reports in the web dashboard.</p>
+            </div>
+          </div>
+
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">What AI model powers the board?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">Quorum is powered by Google's Gemini 2.5 Flash model, configured with specialized system prompts for each executive persona. Each agent runs with carefully tuned parameters to ensure distinct, high-quality perspectives.</p>
+            </div>
+          </div>
+
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">Is my data private?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">Your queries are processed in real-time and not stored persistently. Quorum runs on Firebase with Google Cloud infrastructure, and authentication is handled via Google Sign-In for secure access.</p>
+            </div>
+          </div>
+
+          <div class="faq-item border border-quorum-border/50 rounded-xl bg-quorum-panel/50 overflow-hidden">
+            <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between px-6 py-5 text-left">
+              <span class="font-semibold text-quorum-text">Is it free to use?</span>
+              <svg class="w-5 h-5 text-quorum-muted transition-transform faq-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+            </button>
+            <div class="faq-answer px-6">
+              <p class="text-sm text-quorum-muted leading-relaxed pb-5">Quorum is currently available for free during early access. Sign in with your Google account to get started immediately.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 border-t border-quorum-border/30 bg-quorum-panel/20">
+      <div class="max-w-6xl mx-auto px-6">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-quorum-accent to-blue-600 flex items-center justify-center">
+              <span class="font-serif font-bold text-white text-sm">Q</span>
+            </div>
+            <span class="font-semibold text-quorum-text">Quorum</span>
+            <span class="text-quorum-muted text-sm ml-2">Virtual Board of Directors</span>
+          </div>
+          <div class="flex items-center gap-6">
+            <a href="#features" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">Features</a>
+            <a href="#board" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">The Board</a>
+            <a href="#how-it-works" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">How It Works</a>
+            <a href="#faq" class="text-sm text-quorum-muted hover:text-quorum-text transition-colors">FAQ</a>
+          </div>
+        </div>
+        <div class="mt-8 pt-6 border-t border-quorum-border/20 text-center">
+          <p class="text-xs text-quorum-muted/60">&copy; 2026 Quorum. All rights reserved. Built with AI, for leaders who demand better decisions.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // FAQ Toggle
+      function toggleFaq(button) {
+        const answer = button.nextElementSibling;
+        const icon = button.querySelector('.faq-icon');
+        const isOpen = answer.classList.contains('open');
+
+        // Close all
+        document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+        document.querySelectorAll('.faq-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+
+        // Toggle current
+        if (!isOpen) {
+          answer.classList.add('open');
+          icon.style.transform = 'rotate(45deg)';
+        }
+      }
+
+      // Scroll reveal
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+
+      document.querySelectorAll('.scroll-reveal').forEach(el => observer.observe(el));
+
+      // Smooth scroll for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    </script>
+
+  </body>
+</html>
