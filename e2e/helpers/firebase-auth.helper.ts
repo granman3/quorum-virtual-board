@@ -1,8 +1,8 @@
 import * as admin from 'firebase-admin';
 
 export const TEST_USER = {
-  email: 'quorum-e2e-test@test.example.com',
-  password: 'TestPassword123!',
+  email: process.env.E2E_TEST_EMAIL || 'quorum-e2e-test@test.example.com',
+  password: process.env.E2E_TEST_PASSWORD || '',
   displayName: 'E2E Test User',
 };
 

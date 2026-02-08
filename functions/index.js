@@ -10,6 +10,18 @@ exports.surgeWebhook = onRequest({ timeoutSeconds: 300 }, async (req, res) => {
     return;
   }
 
+  // Verify webhook secret
+  const webhookSecret = process.env.WEBHOOK_SECRET;
+  const providedSecret = req.query.secret || req.headers["x-webhook-secret"];
+  if (!webhookSecret || providedSecret !== webhookSecret) {
+    logger.warn("Unauthorized webhook attempt", {
+      ip: req.ip,
+      hasSecret: !!providedSecret,
+    });
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
   try {
     const event = req.body;
     logger.info("Surge webhook received", { event });
