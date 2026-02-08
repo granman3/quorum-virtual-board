@@ -10,7 +10,15 @@
       "**/*.ts",
       "**/*.tsx",
       "firebase-debug.log",
-      "metadata.json"
+      "metadata.json",
+      "functions/**",
+      "e2e/**",
+      "playwright-report/**",
+      "test-results/**",
+      "playwright.config.ts",
+      "package.json",
+      "package-lock.json",
+      "node_modules/**"
     ],
     "rewrites": [
       {
@@ -33,6 +41,23 @@
           {
             "key": "Content-Type",
             "value": "application/javascript"
+          }
+        ]
+      },
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          },
+          {
+            "key": "X-Frame-Options",
+            "value": "DENY"
+          },
+          {
+            "key": "Referrer-Policy",
+            "value": "strict-origin-when-cross-origin"
           }
         ]
       }
