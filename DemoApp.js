@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Menu, X, LayoutDashboard, Loader2, SkipForward, RotateCcw, ArrowRight } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Loader2, SkipForward, RotateCcw } from 'lucide-react';
 import { AgentRole } from './types.js';
 import { AGENTS } from './constants.js';
 import { MINDSMITH_SCENARIOS, getMockMessages } from './mockData.js';
@@ -188,13 +188,6 @@ const DemoApp = () => {
               'Pre-recorded board sessions \u2014 no sign-up required'
             )
           ),
-          React.createElement('a', {
-            href: '/app.html',
-            className: 'hidden sm:flex items-center gap-2 px-4 py-2 bg-quorum-accent hover:bg-sky-400 text-quorum-dark font-semibold text-sm rounded-lg transition-all'
-          },
-            'Enter the Boardroom',
-            React.createElement(ArrowRight, { className: 'w-4 h-4' })
-          )
         )
       ),
 
@@ -334,16 +327,6 @@ const DemoApp = () => {
         )
       ),
 
-      // Sidebar Footer
-      React.createElement('div', { className: 'p-4 border-t border-quorum-border bg-quorum-panel space-y-2' },
-        React.createElement('a', {
-          href: '/app.html',
-          className: 'flex items-center justify-center gap-2 w-full py-2.5 bg-quorum-accent hover:bg-sky-400 text-quorum-dark font-semibold text-sm rounded-lg transition-all'
-        },
-          'Enter the Boardroom',
-          React.createElement(ArrowRight, { className: 'w-4 h-4' })
-        )
-      )
     ),
 
     // Main Content Area
@@ -434,11 +417,7 @@ const DemoApp = () => {
           React.createElement('div', { className: 'flex justify-between items-center mt-3 px-1' },
             React.createElement('div', { className: 'flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border bg-quorum-accent/10 border-quorum-accent/20 text-quorum-accent' },
               '\uD83D\uDCC4 Full Report'
-            ),
-            React.createElement('a', {
-              href: '/app.html',
-              className: 'text-xs text-quorum-accent hover:text-sky-300 font-medium transition-colors'
-            }, 'Enter the Boardroom \u2192')
+            )
           )
         )
       )
