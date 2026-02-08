@@ -30,6 +30,14 @@
         "destination": "/app.html"
       },
       {
+        "source": "/demo",
+        "destination": "/demo.html"
+      },
+      {
+        "source": "/demo.html",
+        "destination": "/demo.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
