@@ -1,6 +1,5 @@
-const { GoogleGenAI } = require("@google/genai");
-
-const MODEL_NAME = "gemini-2.5-flash";
+const MODEL_NAME = "deepseek-chat";
+const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 const AgentRole = {
   FINANCE: "FINANCE",
@@ -49,9 +48,6 @@ const AGENT_EMOJIS = {
 const FORMAT_INSTRUCTION =
   "BRIEF MODE: 2-3 bullet points only. Maximum 50 words total. No headers, no elaboration.";
 
-/**
- * Retry with exponential backoff for transient API errors.
- */
 async function withRetry(fn, maxRetries = 3) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -66,69 +62,67 @@ async function withRetry(fn, maxRetries = 3) {
   }
 }
 
-/**
- * Consult a single board agent via Gemini.
- */
-async function consultAgent(ai, role, userPrompt) {
+async function callDeepSeek(messages, temperature = 0.7) {
+  const response = await fetch(DEEPSEEK_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: MODEL_NAME,
+      messages: messages,
+      temperature: temperature
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`DeepSeek API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
+async function consultAgent(apiKey, role, userPrompt) {
   const systemInstruction = `${SYSTEM_INSTRUCTIONS[role]} ${FORMAT_INSTRUCTION}`;
 
-  try {
-    const response = await withRetry(() =>
-      ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: {
-          role: "user",
-          parts: [{ text: userPrompt }],
-        },
-        config: {
-          systemInstruction,
-          temperature: 0.7,
-        },
-      })
-    );
+  const messages = [
+    { role: "system", content: systemInstruction },
+    { role: "user", content: userPrompt }
+  ];
 
-    return { role, content: response.text || "I have no comment at this time." };
+  try {
+    const content = await withRetry(() => callDeepSeek(messages, 0.7));
+    return { role, content: content || "I have no comment at this time." };
   } catch (error) {
     console.error(`Error consulting ${role}:`, error);
     return { role, content: `[${role} is unavailable: ${error.message || "connection error"}]` };
   }
 }
 
-/**
- * Synthesize all agent responses into a board resolution.
- */
-async function synthesizeBoard(ai, userPrompt, agentResponses) {
+async function synthesizeBoard(apiKey, userPrompt, agentResponses) {
   const agentTexts = agentResponses
     .map((m) => `${AGENT_TITLES[m.role]}: ${m.content}`)
     .join("\n\n");
 
   const synthesisPrompt = `CEO asked: "${userPrompt}"\n\nBoard advice:\n${agentTexts}\n\nSynthesize into a concise board resolution.`;
 
-  try {
-    const response = await withRetry(() =>
-      ai.models.generateContent({
-        model: MODEL_NAME,
-        contents: {
-          role: "user",
-          parts: [{ text: synthesisPrompt }],
-        },
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTIONS[AgentRole.SYNTHESIS],
-          temperature: 0.5,
-        },
-      })
-    );
+  const messages = [
+    { role: "system", content: SYSTEM_INSTRUCTIONS[AgentRole.SYNTHESIS] },
+    { role: "user", content: synthesisPrompt }
+  ];
 
-    return response.text || "Unable to synthesize.";
+  try {
+    const content = await withRetry(() => callDeepSeek(messages, 0.5));
+    return content || "Unable to synthesize.";
   } catch (error) {
     console.error("Error synthesizing:", error);
     return "Synthesis unavailable.";
   }
 }
 
-/**
- * Format all agent responses + synthesis into a single SMS-friendly string.
- */
 function formatSMSResponse(agentResponses, synthesisText) {
   const agentLines = agentResponses
     .map((r) => `${AGENT_EMOJIS[r.role]} ${AGENT_TITLES[r.role]}: ${r.content}`)
@@ -137,48 +131,29 @@ function formatSMSResponse(agentResponses, synthesisText) {
   return `${agentLines}\n\n\u{1F3DB}\uFE0F BOARD RESOLUTION:\n${synthesisText}`;
 }
 
-/**
- * Full board consultation: 4 agents in parallel, then synthesis.
- * Returns the formatted SMS response string.
- */
 async function consultBoard(userPrompt) {
   const { agentResponses, synthesisText } = await consultBoardRaw(userPrompt);
   return formatSMSResponse(agentResponses, synthesisText);
 }
 
-/**
- * Full board consultation returning structured data.
- * Returns { agentResponses, synthesisText } for flexible formatting.
- */
 async function consultBoardRaw(userPrompt) {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
   const agents = [AgentRole.FINANCE, AgentRole.GROWTH, AgentRole.TECH, AgentRole.LEGAL];
 
-  // Run all 4 agents in parallel
   const agentResponses = await Promise.all(
-    agents.map((role) => consultAgent(ai, role, userPrompt))
+    agents.map((role) => consultAgent(process.env.DEEPSEEK_API_KEY, role, userPrompt))
   );
 
-  // Synthesize
-  const synthesisText = await synthesizeBoard(ai, userPrompt, agentResponses);
+  const synthesisText = await synthesizeBoard(process.env.DEEPSEEK_API_KEY, userPrompt, agentResponses);
 
   return { agentResponses, synthesisText };
 }
 
-/**
- * Get byte length of a string in UTF-8 (what Surge counts).
- */
 function utf8Length(str) {
   return new TextEncoder().encode(str).length;
 }
 
-/**
- * Truncate a string to fit within maxBytes of UTF-8.
- */
 function truncateToUtf8(str, maxBytes) {
   if (utf8Length(str) <= maxBytes) return str;
-  // Binary search for the right cut point
   let low = 0, high = str.length;
   while (low < high) {
     const mid = (low + high + 1) >> 1;
@@ -188,9 +163,6 @@ function truncateToUtf8(str, maxBytes) {
   return str.slice(0, low);
 }
 
-/**
- * Format structured board response into SMS segments (each ≤1600 bytes UTF-8).
- */
 function formatSMSSegments(agentResponses, synthesisText) {
   const segments = [];
 

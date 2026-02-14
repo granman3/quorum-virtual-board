@@ -1,29 +1,26 @@
-import { GoogleGenAI } from '@google/genai';
 import { AgentRole } from '../types.js';
 import { SYSTEM_INSTRUCTIONS, AGENTS } from '../constants.js';
 
-// API key management — prompt user if not set
-let apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
+const MODEL_NAME = 'deepseek-chat';
+
+let apiKey = localStorage.getItem('DEEPSEEK_API_KEY') || '';
 
 export const getApiKey = () => apiKey;
 
 export const setApiKey = (key) => {
   apiKey = key;
-  localStorage.setItem('GEMINI_API_KEY', key);
+  localStorage.setItem('DEEPSEEK_API_KEY', key);
 };
 
 export const hasApiKey = () => apiKey.length > 0;
 
-const getAI = () => new GoogleGenAI({ apiKey });
-const MODEL_NAME = 'gemini-2.5-flash';
-
-// Retry helper with exponential backoff for transient API errors
 const withRetry = async (fn, maxRetries = 3) => {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      const status = error?.status || error?.code || error?.httpErrorCode;
+      const status = error?.status || error?.code;
       const isRetryable = status === 500 || status === 503 || status === 429;
       if (!isRetryable || attempt === maxRetries) throw error;
       const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
@@ -32,7 +29,6 @@ const withRetry = async (fn, maxRetries = 3) => {
   }
 };
 
-// Helper to determine mode based on word count
 export const determineMode = (input) => {
   const wordCount = input.trim().split(/\s+/).length;
   return wordCount < 30 ? 'SMS' : 'DASHBOARD';
@@ -45,7 +41,6 @@ const getFormatInstruction = (mode) => {
   return "REPORT MODE: Use short markdown headers and tight bullet points. Maximum 150 words. Lead with your conclusion. No filler, no preambles, no repetition.";
 };
 
-// Build conversation history for multi-turn context
 const buildConversationHistory = (messages, currentRole) => {
   const historyParts = [];
 
@@ -53,16 +48,15 @@ const buildConversationHistory = (messages, currentRole) => {
     if (msg.role === AgentRole.USER) {
       historyParts.push({
         role: 'user',
-        parts: [{ text: msg.content }]
+        content: msg.content
       });
     } else {
-      // Agent responses become "model" turns in the conversation
       const agentName = msg.role === AgentRole.SYNTHESIS
         ? 'Board Secretary'
         : AGENTS[msg.role]?.name || msg.role;
       historyParts.push({
-        role: 'model',
-        parts: [{ text: `[${agentName}]: ${msg.content}` }]
+        role: 'assistant',
+        content: `[${agentName}]: ${msg.content}`
       });
     }
   }
@@ -70,7 +64,6 @@ const buildConversationHistory = (messages, currentRole) => {
   return historyParts;
 };
 
-// Parse vote and confidence from advisor response text
 export const parseVoteAndConfidence = (text) => {
   const voteMatch = text.match(/\*\*Vote:\s*(APPROVE|AGAINST|ABSTAIN)\*\*/i);
   const confidenceMatch = text.match(/\*\*Confidence:\s*(\d+)\*\*/i);
@@ -80,50 +73,71 @@ export const parseVoteAndConfidence = (text) => {
   };
 };
 
-// Individual Agent Call with streaming
-const consultAgentStreaming = async (role, userPrompt, mode, messageHistory, onChunk) => {
-  const ai = getAI();
-  const systemInstruction = `${SYSTEM_INSTRUCTIONS[role]}\n\n${getFormatInstruction(mode)}`;
+const callDeepSeekStreaming = async (messages, onChunk) => {
+  const response = await fetch(DEEPSEEK_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: MODEL_NAME,
+      messages: messages,
+      temperature: 0.8,
+      stream: true
+    })
+  });
 
-  // Build conversation context from history
-  const history = buildConversationHistory(messageHistory, role);
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`DeepSeek API error: ${response.status} - ${error}`);
+  }
 
-  // Add the current user prompt
-  const contents = [
-    ...history,
-    { role: 'user', parts: [{ text: userPrompt }] }
-  ];
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = '';
 
-  // Deduplicate consecutive same-role entries (Gemini requires alternating roles)
-  const deduped = [];
-  for (const entry of contents) {
-    if (deduped.length > 0 && deduped[deduped.length - 1].role === entry.role) {
-      // Merge into previous entry
-      const prev = deduped[deduped.length - 1];
-      prev.parts.push(...entry.parts);
-    } else {
-      deduped.push({ ...entry, parts: [...entry.parts] });
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    const lines = chunk.split('\n').filter(line => line.trim() !== '');
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6);
+        if (data === '[DONE]') continue;
+
+        try {
+          const parsed = JSON.parse(data);
+          const content = parsed.choices?.[0]?.delta?.content || '';
+          fullText += content;
+          onChunk(fullText);
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
     }
   }
+
+  return fullText;
+};
+
+const consultAgentStreaming = async (role, userPrompt, mode, messageHistory, onChunk) => {
+  const systemInstruction = `${SYSTEM_INSTRUCTIONS[role]}\n\n${getFormatInstruction(mode)}`;
+  const history = buildConversationHistory(messageHistory, role);
+
+  const messages = [
+    { role: 'system', content: systemInstruction },
+    ...history,
+    { role: 'user', content: userPrompt }
+  ];
 
   try {
     let fullText = '';
     await withRetry(async () => {
-      fullText = '';
-      const response = await ai.models.generateContentStream({
-        model: MODEL_NAME,
-        contents: deduped,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.8,
-        }
-      });
-
-      for await (const chunk of response) {
-        const text = chunk.text || '';
-        fullText += text;
-        onChunk(fullText);
-      }
+      fullText = await callDeepSeekStreaming(messages, onChunk);
     });
 
     const { vote, confidence } = parseVoteAndConfidence(fullText);
@@ -150,15 +164,12 @@ const consultAgentStreaming = async (role, userPrompt, mode, messageHistory, onC
   }
 };
 
-// Synthesis Call with streaming
 const synthesizeBoardStreaming = async (userPrompt, agentResponses, mode, messageHistory, onChunk) => {
-  const ai = getAI();
   const agentTexts = agentResponses.map(m => {
     const name = AGENTS[m.role]?.name || m.role;
     return `**${name} (${AGENTS[m.role]?.title || m.role})** says:\n${m.content}`;
   }).join('\n\n---\n\n');
 
-  // Build vote summary for synthesis context
   const voteSummary = agentResponses
     .filter(m => m.vote)
     .map(m => `- ${AGENTS[m.role]?.title || m.role}: ${m.vote} (Confidence: ${m.confidence}/10)`)
@@ -176,40 +187,17 @@ ${voteSummary || 'No votes recorded.'}
 Synthesize this into a final board resolution. Include a Vote Tally table at the top. Highlight where the board agrees and where they fundamentally clash. Be specific about who disagrees with whom and why.`;
 
   const history = buildConversationHistory(messageHistory, AgentRole.SYNTHESIS);
-  const contents = [
+  
+  const messages = [
+    { role: 'system', content: SYSTEM_INSTRUCTIONS[AgentRole.SYNTHESIS] },
     ...history,
-    { role: 'user', parts: [{ text: synthesisPrompt }] }
+    { role: 'user', content: synthesisPrompt }
   ];
-
-  // Deduplicate consecutive same-role entries
-  const deduped = [];
-  for (const entry of contents) {
-    if (deduped.length > 0 && deduped[deduped.length - 1].role === entry.role) {
-      const prev = deduped[deduped.length - 1];
-      prev.parts.push(...entry.parts);
-    } else {
-      deduped.push({ ...entry, parts: [...entry.parts] });
-    }
-  }
 
   try {
     let fullText = '';
     await withRetry(async () => {
-      fullText = '';
-      const response = await ai.models.generateContentStream({
-        model: MODEL_NAME,
-        contents: deduped,
-        config: {
-          systemInstruction: SYSTEM_INSTRUCTIONS[AgentRole.SYNTHESIS],
-          temperature: 0.5,
-        }
-      });
-
-      for await (const chunk of response) {
-        const text = chunk.text || '';
-        fullText += text;
-        onChunk(fullText);
-      }
+      fullText = await callDeepSeekStreaming(messages, onChunk);
     });
 
     return {
@@ -235,11 +223,9 @@ export const consultBoard = async (userInput, messageHistory, onStreamingUpdate,
   const mode = determineMode(userInput);
   const agents = [AgentRole.FINANCE, AgentRole.GROWTH, AgentRole.TECH, AgentRole.LEGAL];
 
-  // Process agents sequentially for dramatic effect (one-by-one deliberation)
   const responses = [];
 
   for (const role of agents) {
-    // Signal which agent is now "thinking"
     onStreamingUpdate(role, '', true);
 
     const msg = await consultAgentStreaming(
@@ -251,7 +237,6 @@ export const consultBoard = async (userInput, messageHistory, onStreamingUpdate,
     onAgentComplete(msg);
   }
 
-  // Now synthesize
   onStreamingUpdate(AgentRole.SYNTHESIS, '', true);
 
   const synthesisMsg = await synthesizeBoardStreaming(

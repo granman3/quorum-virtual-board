@@ -233,7 +233,7 @@ const App = () => {
         ),
         React.createElement('div', null,
           React.createElement('h2', { className: 'text-lg font-serif font-bold text-white' }, 'API Key Required'),
-          React.createElement('p', { className: 'text-xs text-quorum-muted' }, 'Enter your Google Gemini API key to activate the board')
+          React.createElement('p', { className: 'text-xs text-quorum-muted' }, 'Enter your DeepSeek API key to activate the board')
         )
       ),
       React.createElement('input', {
@@ -242,17 +242,17 @@ const App = () => {
         value: apiKeyInput,
         onChange: (e) => setApiKeyInput(e.target.value),
         onKeyDown: (e) => e.key === 'Enter' && handleSaveApiKey(),
-        placeholder: 'AIza...',
+        placeholder: 'sk-...',
         className: 'w-full bg-quorum-dark border border-quorum-border rounded-lg px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-quorum-accent/50 mb-4 font-mono'
       }),
       React.createElement('p', { className: 'text-xs text-quorum-muted mb-4 leading-relaxed' },
         'Get a free API key from ',
         React.createElement('a', {
-          href: 'https://aistudio.google.com/apikey',
+          href: 'https://platform.deepseek.com/api_keys',
           target: '_blank',
           rel: 'noopener',
           className: 'text-quorum-accent hover:underline'
-        }, 'Google AI Studio'),
+        }, 'DeepSeek Platform'),
         '. Your key is stored locally in your browser.'
       ),
       React.createElement('button', {
@@ -471,7 +471,7 @@ const App = () => {
             'New Session'
           ),
           React.createElement('div', { className: 'text-[10px] font-mono text-slate-600 hidden sm:block' },
-            'Gemini 2.5 Flash'
+            'DeepSeek V3'
           )
         )
       ),

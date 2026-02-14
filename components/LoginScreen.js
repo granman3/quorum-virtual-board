@@ -197,7 +197,7 @@ export const LoginScreen = () => {
         // Footer
         React.createElement('p', {
           className: 'mt-8 text-[11px] text-slate-600 text-center leading-relaxed'
-        }, 'Powered by Google Gemini AI. Your data stays in your browser.')
+        }, 'Powered by DeepSeek AI. Your data stays in your browser.')
       )
     )
   );
